@@ -1,6 +1,6 @@
 # worksummary
 
-A command-line tool for logging daily work items and producing a Microsoft Teams-ready summary.
+A command-line tool for logging daily work items and producing a Microsoft Teams-ready summary. Disclaimer/warning: produced with AI as a personal tool. Tested on Ubuntu Linux and nowhere else yet. Testing on Mac soon.
 
 ## Install
 
