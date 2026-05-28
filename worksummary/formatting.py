@@ -6,6 +6,23 @@ from worksummary.ids import shortest_unique_prefixes
 from worksummary.storage import Item
 from worksummary.urls import rewrite_with_footnotes
 
+# Teams renders markdown bold (**...**) only when you TYPE it, not when you
+# paste it. To get bold text via paste we translate ASCII letters and digits
+# into the Unicode Mathematical Bold block (U+1D400+) — these are real
+# characters that render bold everywhere with no markdown needed.
+_BOLD_MAP: dict[int, int] = {}
+for _i, _c in enumerate("ABCDEFGHIJKLMNOPQRSTUVWXYZ"):
+    _BOLD_MAP[ord(_c)] = 0x1D400 + _i
+for _i, _c in enumerate("abcdefghijklmnopqrstuvwxyz"):
+    _BOLD_MAP[ord(_c)] = 0x1D41A + _i
+for _i, _c in enumerate("0123456789"):
+    _BOLD_MAP[ord(_c)] = 0x1D7CE + _i
+
+
+def _bold(text: str) -> str:
+    """Return `text` with ASCII letters/digits converted to Unicode bold."""
+    return text.translate(_BOLD_MAP)
+
 
 def _format_header_date(d: date) -> str:
     return d.strftime("%a %-d %b %Y")
@@ -19,11 +36,11 @@ def _format_time(created_at: str) -> str:
 
 
 def format_summary(items: list[Item], work_date: date) -> str:
-    """Render items as Teams-ready markdown."""
+    """Render items as Teams-paste-friendly text using Unicode bold for headers."""
     if not items:
         return f"No work items recorded for {work_date.isoformat()}."
 
-    header = f"**Work — {_format_header_date(work_date)}**"
+    header = _bold("Work") + " — " + _bold(_format_header_date(work_date))
 
     bullets: list[str] = []
     references: list[str] = []
@@ -37,7 +54,7 @@ def format_summary(items: list[Item], work_date: date) -> str:
     sections = [header, "", *bullets]
     if references:
         sections.append("")
-        sections.append("**References**")
+        sections.append(_bold("References"))
         for i, url in enumerate(references, start=1):
             sections.append(f"{i}. {url}")
 
@@ -57,7 +74,8 @@ def format_ls(items: list[Item], work_date: date, use_color: bool = True) -> str
         prefix = item.id[:k]
         rest = item.id[k:]
         colored_prefix = click.style(prefix, fg="red") if use_color else prefix
+        date_str = item.work_date.isoformat()
         time_str = _format_time(item.created_at)
-        lines.append(f"{colored_prefix}{rest}  {time_str}  {item.description}")
+        lines.append(f"{colored_prefix}{rest}  {date_str} {time_str}  {item.description}")
 
     return "\n".join(lines)

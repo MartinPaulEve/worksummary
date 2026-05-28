@@ -113,15 +113,18 @@ def test_replace_swaps_item(runner):
     assert "updated" in final
 
 
-def test_summary_outputs_teams_markdown(runner):
+def test_summary_outputs_teams_friendly_text(runner):
     _add(runner, "Did a thing https://example.com/1", "--date", "2026-05-28")
     _add(runner, "Did another thing", "--date", "2026-05-28")
     result = runner.invoke(cli.cli, ["summary", "--date", "2026-05-28"])
     assert result.exit_code == 0
-    assert "**Work — Thu 28 May 2026**" in result.output
+    # Header uses Unicode bold (renders bold on paste; markdown ** does not).
+    assert "𝐖𝐨𝐫𝐤" in result.output
+    assert "𝐓𝐡𝐮 𝟐𝟖 𝐌𝐚𝐲 𝟐𝟎𝟐𝟔" in result.output
+    assert "**" not in result.output  # no markdown asterisks leaking through
     assert "- Did a thing [¹]" in result.output
     assert "- Did another thing" in result.output
-    assert "**References**" in result.output
+    assert "𝐑𝐞𝐟𝐞𝐫𝐞𝐧𝐜𝐞𝐬" in result.output
     assert "1. https://example.com/1" in result.output
 
 
