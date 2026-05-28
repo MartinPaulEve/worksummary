@@ -119,7 +119,7 @@ def test_summary_outputs_teams_markdown(runner):
     result = runner.invoke(cli.cli, ["summary", "--date", "2026-05-28"])
     assert result.exit_code == 0
     assert "**Work — Thu 28 May 2026**" in result.output
-    assert "- Did a thing [1]" in result.output
+    assert "- Did a thing [¹]" in result.output
     assert "- Did another thing" in result.output
     assert "**References**" in result.output
     assert "1. https://example.com/1" in result.output

@@ -38,8 +38,9 @@ def test_format_summary_no_urls_omits_references():
 def test_format_summary_single_url_produces_reference():
     items = [make_item("a", "Fixed bug https://example.com/1")]
     output = formatting.format_summary(items, date(2026, 5, 28))
-    assert "- Fixed bug [1]" in output
+    assert "- Fixed bug [¹]" in output
     assert "**References**" in output
+    # References list keeps plain digits (ordered-list rendering in Teams).
     assert "1. https://example.com/1" in output
 
 
@@ -50,8 +51,8 @@ def test_format_summary_numbers_urls_globally_across_items():
         make_item("c", "Plain bullet"),
     ]
     output = formatting.format_summary(items, date(2026, 5, 28))
-    assert "- Reviewed [1] and [2]" in output
-    assert "- Fixed [3]" in output
+    assert "- Reviewed [¹] and [²]" in output
+    assert "- Fixed [³]" in output
     assert "- Plain bullet" in output
     assert "1. https://a.com" in output
     assert "2. https://b.com" in output
@@ -61,7 +62,7 @@ def test_format_summary_numbers_urls_globally_across_items():
 def test_format_summary_adjacent_urls_in_one_bullet():
     items = [make_item("a", "Reviewed https://a.com https://b.com today")]
     output = formatting.format_summary(items, date(2026, 5, 28))
-    assert "- Reviewed [1][2] today" in output
+    assert "- Reviewed [¹][²] today" in output
 
 
 def test_format_summary_uses_correct_weekday():

@@ -46,7 +46,7 @@ def test_rewrite_with_footnotes_single_url():
     text, extracted, next_n = urls.rewrite_with_footnotes(
         "Fixed bug 128 https://example.com/issues/597", start_n=1
     )
-    assert text == "Fixed bug 128 [1]"
+    assert text == "Fixed bug 128 [¹]"
     assert extracted == ["https://example.com/issues/597"]
     assert next_n == 2
 
@@ -55,14 +55,14 @@ def test_rewrite_with_footnotes_multiple_urls_sequential():
     text, extracted, next_n = urls.rewrite_with_footnotes(
         "Reviewed https://a.com and https://b.com", start_n=1
     )
-    assert text == "Reviewed [1] and [2]"
+    assert text == "Reviewed [¹] and [²]"
     assert extracted == ["https://a.com", "https://b.com"]
     assert next_n == 3
 
 
 def test_rewrite_with_footnotes_continues_numbering():
     text, extracted, next_n = urls.rewrite_with_footnotes("Reviewed https://c.com", start_n=3)
-    assert text == "Reviewed [3]"
+    assert text == "Reviewed [³]"
     assert extracted == ["https://c.com"]
     assert next_n == 4
 
@@ -71,11 +71,18 @@ def test_rewrite_with_footnotes_collapses_whitespace_around_removed_url():
     text, extracted, _ = urls.rewrite_with_footnotes(
         "Reviewed https://a.com https://b.com today", start_n=1
     )
-    assert text == "Reviewed [1][2] today"
+    assert text == "Reviewed [¹][²] today"
     assert extracted == ["https://a.com", "https://b.com"]
 
 
 def test_rewrite_with_footnotes_preserves_trailing_punctuation():
     text, extracted, _ = urls.rewrite_with_footnotes("See https://example.com.", start_n=1)
-    assert text == "See [1]."
+    assert text == "See [¹]."
     assert extracted == ["https://example.com"]
+
+
+def test_rewrite_with_footnotes_multi_digit_footnote():
+    text, extracted, _ = urls.rewrite_with_footnotes("Reviewed https://x.com", start_n=12)
+    # 12 -> superscript "¹²"
+    assert text == "Reviewed [¹²]"
+    assert extracted == ["https://x.com"]
