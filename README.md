@@ -27,6 +27,10 @@ The first `worksummary` invocation creates an SQLite database under `$XDG_DATA_H
 worksummary add "Fixed bug 128 https://github.com/example/repo/issues/128"
 worksummary add "Reviewed yesterday's PR" --date 2026-05-27
 
+# Insert an item BEFORE an existing item in the day's list. The new
+# item takes the target's date. Mutually exclusive with --date.
+worksummary add --before 2 "Triaged the bug before fixing it"
+
 # List items for a date (full hash; shortest globally-unique prefix highlighted in [red])
 worksummary ls
 worksummary ls --date 2026-05-27

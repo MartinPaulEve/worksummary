@@ -45,14 +45,30 @@ def cli() -> None:
 @cli.command()
 @click.argument("description")
 @click.option("--date", "date_str", default=None, help="ISO date (YYYY-MM-DD); defaults to today.")
-def add(description: str, date_str: str | None) -> None:
+@click.option(
+    "--before",
+    "before_prefix",
+    default=None,
+    help="Insert before the item with this id prefix. Takes the target's date.",
+)
+def add(description: str, date_str: str | None, before_prefix: str | None) -> None:
     """Add a work item."""
-    work_date = _parse_date_or_exit(date_str)
+    if before_prefix and date_str:
+        click.echo("Error: --before and --date are mutually exclusive.", err=True)
+        sys.exit(1)
+
     conn = _open_db()
-    item = storage.add_item(conn, work_date, description)
+
+    if before_prefix:
+        target_id = _resolve_or_exit(conn, before_prefix)
+        item = storage.add_item_before(conn, target_id, description)
+    else:
+        work_date = _parse_date_or_exit(date_str)
+        item = storage.add_item(conn, work_date, description)
+
     prefix_lens = ids.shortest_unique_prefixes(storage.all_ids(conn))
     short = item.id[: prefix_lens[item.id]]
-    click.echo(f"Added [{short}] on {work_date.isoformat()}: {description}")
+    click.echo(f"Added [{short}] on {item.work_date.isoformat()}: {description}")
 
 
 @cli.command(name="ls")

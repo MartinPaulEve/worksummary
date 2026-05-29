@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import date
+from datetime import date, datetime
 
 import pytest
 
@@ -83,3 +83,50 @@ def test_all_ids_returns_all_hashes(conn):
 
 def test_all_ids_empty(conn):
     assert storage.all_ids(conn) == []
+
+
+def test_add_item_before_inserts_with_earlier_timestamp(conn):
+    target = storage.add_item(conn, date(2026, 5, 28), "target")
+    new = storage.add_item_before(conn, target.id, "new")
+    assert datetime.fromisoformat(new.created_at) < datetime.fromisoformat(target.created_at)
+
+
+def test_add_item_before_appears_before_target_in_listing(conn):
+    target = storage.add_item(conn, date(2026, 5, 28), "target")
+    storage.add_item_before(conn, target.id, "new")
+    items = storage.list_items(conn, date(2026, 5, 28))
+    assert [i.description for i in items] == ["new", "target"]
+
+
+def test_add_item_before_in_middle_of_list(conn):
+    a = storage.add_item(conn, date(2026, 5, 28), "A")
+    b = storage.add_item(conn, date(2026, 5, 28), "B")
+    storage.add_item(conn, date(2026, 5, 28), "C")
+    storage.add_item_before(conn, b.id, "new")
+    items = storage.list_items(conn, date(2026, 5, 28))
+    assert [i.description for i in items] == ["A", "new", "B", "C"]
+    # And specifically the new item didn't displace A
+    assert items[0].id == a.id
+
+
+def test_add_item_before_takes_targets_work_date(conn):
+    target = storage.add_item(conn, date(2026, 5, 27), "yesterday")
+    new = storage.add_item_before(conn, target.id, "before yesterday")
+    assert new.work_date == date(2026, 5, 27)
+
+
+def test_add_item_before_unknown_target_raises(conn):
+    with pytest.raises(KeyError):
+        storage.add_item_before(conn, "0" * 40, "new")
+
+
+def test_add_item_before_repeated_inserts_stay_ordered(conn):
+    """Inserting before the same target twice should keep both before the target."""
+    target = storage.add_item(conn, date(2026, 5, 28), "target")
+    storage.add_item_before(conn, target.id, "first-insert")
+    storage.add_item_before(conn, target.id, "second-insert")
+    items = storage.list_items(conn, date(2026, 5, 28))
+    descriptions = [i.description for i in items]
+    # Both inserts come before target, regardless of which of them is first.
+    assert descriptions[-1] == "target"
+    assert set(descriptions[:2]) == {"first-insert", "second-insert"}

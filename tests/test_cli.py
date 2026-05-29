@@ -132,6 +132,60 @@ def test_summary_outputs_teams_friendly_text(runner):
     assert "1. https://example.com/1" in result.output
 
 
+def test_add_before_inserts_before_target(runner, monkeypatch):
+    fixed_ids = iter(
+        [
+            "a" + "0" * 39,  # first
+            "b" + "0" * 39,  # target
+            "c" + "0" * 39,  # new (inserted before target)
+        ]
+    )
+    monkeypatch.setattr(cli.ids, "generate_id", lambda desc, ts: next(fixed_ids))
+
+    _add(runner, "first", "--date", "2026-05-28")
+    _add(runner, "target", "--date", "2026-05-28")
+
+    result = runner.invoke(cli.cli, ["add", "--before", "b", "new"])
+    assert result.exit_code == 0
+    assert "Added" in result.output
+
+    ls_out = _strip_ansi(_ls(runner, "--date", "2026-05-28").output)
+    lines = ls_out.strip().splitlines()
+    assert "first" in lines[0]
+    assert "new" in lines[1]
+    assert "target" in lines[2]
+
+
+def test_add_before_uses_targets_work_date(runner, monkeypatch):
+    fixed_ids = iter(["a" + "0" * 39, "b" + "0" * 39])
+    monkeypatch.setattr(cli.ids, "generate_id", lambda desc, ts: next(fixed_ids))
+
+    _add(runner, "yesterday-target", "--date", "2026-05-27")
+    result = runner.invoke(cli.cli, ["add", "--before", "a", "new"])
+    assert result.exit_code == 0
+    # The new item must be on 2026-05-27, NOT today
+    assert "2026-05-27" in result.output
+    # And ls for that date now has it
+    ls_out = _strip_ansi(_ls(runner, "--date", "2026-05-27").output)
+    assert "new" in ls_out
+
+
+def test_add_before_and_date_are_mutually_exclusive(runner, monkeypatch):
+    fixed_ids = iter(["a" + "0" * 39])
+    monkeypatch.setattr(cli.ids, "generate_id", lambda desc, ts: next(fixed_ids))
+
+    _add(runner, "target", "--date", "2026-05-28")
+    result = runner.invoke(cli.cli, ["add", "--before", "a", "--date", "2026-05-29", "new"])
+    assert result.exit_code != 0
+    assert "mutually exclusive" in result.output.lower()
+
+
+def test_add_before_unknown_prefix_errors(runner):
+    result = runner.invoke(cli.cli, ["add", "--before", "zzz", "new"])
+    assert result.exit_code != 0
+    assert "no item matches" in result.output.lower()
+
+
 def test_ls_prefix_is_globally_unique_so_remove_works(runner, monkeypatch):
     """The prefix shown by `ls --date X` must work with `remove`, even if
     another item on a different date shares leading hash characters."""

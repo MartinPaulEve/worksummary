@@ -1,6 +1,6 @@
 import sqlite3
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from worksummary import ids
@@ -61,6 +61,47 @@ def add_item(conn: sqlite3.Connection, work_date: date, description: str) -> Ite
     return Item(
         id=item_id,
         work_date=work_date,
+        created_at=created_at,
+        description=description,
+    )
+
+
+def add_item_before(conn: sqlite3.Connection, target_id: str, description: str) -> Item:
+    """Insert a new item positioned just before `target_id` in its day's list.
+
+    The new item takes the target's work_date and gets a created_at
+    timestamp between the target and the item that currently precedes it
+    (or one second earlier than the target if it is first of the day).
+    Raises KeyError if target_id is not found.
+    """
+    target = get_item(conn, target_id)
+    if target is None:
+        raise KeyError(target_id)
+
+    todays_items = list_items(conn, target.work_date)
+    target_idx = next(i for i, it in enumerate(todays_items) if it.id == target_id)
+    target_ts = datetime.fromisoformat(target.created_at)
+
+    if target_idx == 0:
+        new_ts = target_ts - timedelta(seconds=1)
+    else:
+        prev_ts = datetime.fromisoformat(todays_items[target_idx - 1].created_at)
+        new_ts = prev_ts + (target_ts - prev_ts) / 2
+        if new_ts == prev_ts:
+            # Target and predecessor are 1μs apart — datetime arithmetic
+            # truncated. Fall back to one microsecond before target.
+            new_ts = target_ts - timedelta(microseconds=1)
+
+    created_at = new_ts.isoformat()
+    item_id = ids.generate_id(description, created_at)
+    conn.execute(
+        "INSERT INTO items (id, work_date, created_at, description) VALUES (?, ?, ?, ?)",
+        (item_id, format_iso(target.work_date), created_at, description),
+    )
+    conn.commit()
+    return Item(
+        id=item_id,
+        work_date=target.work_date,
         created_at=created_at,
         description=description,
     )
