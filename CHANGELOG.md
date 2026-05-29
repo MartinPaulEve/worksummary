@@ -1,3 +1,9 @@
+## 1.2.0 (2026-05-29)
+
+### Feat
+
+- **add**: support --before <prefix> to insert before an existing item
+
 ## 1.1.3 (2026-05-29)
 
 ### Fix
