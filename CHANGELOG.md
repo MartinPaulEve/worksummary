@@ -1,3 +1,9 @@
+## 1.1.3 (2026-05-29)
+
+### Fix
+
+- **completion**: bypass env subprocess in fish completion
+
 ## 1.1.2 (2026-05-29)
 
 ### Fix
