@@ -1,3 +1,9 @@
+## 1.1.1 (2026-05-29)
+
+### Fix
+
+- **ls**: compute prefix globally and wrap it in [brackets]
+
 ## 1.1.0 (2026-05-28)
 
 ### Feat
