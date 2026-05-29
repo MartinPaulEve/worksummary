@@ -1,3 +1,9 @@
+## 1.1.2 (2026-05-29)
+
+### Fix
+
+- **completion**: ship working fish completion script
+
 ## 1.1.1 (2026-05-29)
 
 ### Fix
