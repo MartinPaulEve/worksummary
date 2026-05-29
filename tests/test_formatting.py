@@ -101,7 +101,7 @@ def test_format_summary_header_contains_literal_bold_unicode():
 
 
 def test_format_ls_no_items():
-    output = formatting.format_ls([], date(2026, 5, 28), use_color=False)
+    output = formatting.format_ls([], date(2026, 5, 28), [], use_color=False)
     assert output == "No work items recorded for 2026-05-28."
 
 
@@ -112,16 +112,16 @@ def test_format_ls_shows_full_hash_and_date_and_time_and_description():
         created_at="2026-05-28T11:42:00",
         description="Did a thing",
     )
-    output = formatting.format_ls([item], date(2026, 5, 28), use_color=False)
-    assert "a" * 40 in output
+    output = formatting.format_ls([item], date(2026, 5, 28), [item.id], use_color=False)
+    # Brackets are decoration; the full hash chars must still appear
+    output_no_brackets = output.replace("[", "").replace("]", "")
+    assert "a" * 40 in output_no_brackets
     assert "2026-05-28" in output
     assert "11:42" in output
     assert "Did a thing" in output
 
 
 def test_format_ls_includes_each_items_own_date():
-    # Confirms ls labels every row with the entry's work_date — useful when
-    # browsing items that span multiple days.
     items = [
         Item(
             id="a" * 40,
@@ -136,7 +136,7 @@ def test_format_ls_includes_each_items_own_date():
             description="today work",
         ),
     ]
-    output = formatting.format_ls(items, date(2026, 5, 28), use_color=False)
+    output = formatting.format_ls(items, date(2026, 5, 28), [i.id for i in items], use_color=False)
     yesterday_line = next(line for line in output.splitlines() if "yesterday work" in line)
     today_line = next(line for line in output.splitlines() if "today work" in line)
     assert "2026-05-27" in yesterday_line
@@ -152,7 +152,7 @@ def test_format_ls_uncolored_returns_plain_text():
             description="Plain",
         )
     ]
-    output = formatting.format_ls(items, date(2026, 5, 28), use_color=False)
+    output = formatting.format_ls(items, date(2026, 5, 28), [items[0].id], use_color=False)
     assert "\x1b[" not in output
 
 
@@ -165,11 +165,11 @@ def test_format_ls_colored_includes_ansi_escape():
             description="Coloured",
         )
     ]
-    output = formatting.format_ls(items, date(2026, 5, 28), use_color=True)
+    output = formatting.format_ls(items, date(2026, 5, 28), [items[0].id], use_color=True)
     assert "\x1b[" in output
 
 
-def test_format_ls_colors_only_unique_prefix():
+def test_format_ls_colors_only_unique_prefix_inside_brackets():
     import re
 
     items = [
@@ -186,14 +186,55 @@ def test_format_ls_colors_only_unique_prefix():
             description="second",
         ),
     ]
-    output = formatting.format_ls(items, date(2026, 5, 28), use_color=True)
-    # The colored prefix interrupts the hash with ANSI escapes; strip them
-    # to verify the full hash is present once color codes are removed.
+    all_hashes = [i.id for i in items]
+    output = formatting.format_ls(items, date(2026, 5, 28), all_hashes, use_color=True)
     stripped = re.sub(r"\x1b\[[0-9;]*m", "", output)
-    assert "\x1b[" in output
-    assert "ab" + "0" * 38 in stripped
-    assert "ac" + "0" * 38 in stripped
-    # The first two characters of each id should appear as colored prefixes
-    # in the raw output, immediately followed by the rest of the hash.
-    assert "ab\x1b[0m" + "0" * 38 in output
-    assert "ac\x1b[0m" + "0" * 38 in output
+    # With ANSI removed, prefix is wrapped in literal [brackets]
+    assert "[ab]" + "0" * 38 in stripped
+    assert "[ac]" + "0" * 38 in stripped
+    # Brackets themselves are NOT inside the red color codes
+    assert "[\x1b[" in output  # opening bracket immediately precedes ANSI escape
+
+
+def test_format_ls_wraps_prefix_in_square_brackets_when_uncolored():
+    items = [
+        Item(
+            id="aeb1ed72145de30f2d920d63ae5d183cf9bcfc72",
+            work_date=date(2026, 5, 28),
+            created_at="2026-05-28T11:42:00",
+            description="example",
+        ),
+        Item(
+            id="aeb29c4d1e0f8b3a5c6d7e8f9a0b1c2d3e4f5a6b",
+            work_date=date(2026, 5, 28),
+            created_at="2026-05-28T11:43:00",
+            description="other",
+        ),
+    ]
+    all_hashes = [i.id for i in items]
+    output = formatting.format_ls(items, date(2026, 5, 28), all_hashes, use_color=False)
+    # The two items share "aeb" so the unique prefix is "aeb1" / "aeb2".
+    assert "[aeb1]ed72145de30f2d920d63ae5d183cf9bcfc72" in output
+    assert "[aeb2]9c4d1e0f8b3a5c6d7e8f9a0b1c2d3e4f5a6b" in output
+
+
+def test_format_ls_prefix_unique_across_all_hashes_not_just_visible():
+    """If only one item is visible but another globally shares its leading
+    characters, the displayed prefix must reflect the global ambiguity so
+    `remove <prefix>` actually works."""
+    visible = [
+        Item(
+            id="a" + "0" * 39,
+            work_date=date(2026, 5, 28),
+            created_at="2026-05-28T11:42:00",
+            description="visible",
+        ),
+    ]
+    # Another item exists in the DB on a different date, also starting with 'a'.
+    all_hashes = ["a" + "0" * 39, "a" + "1" * 39]
+    output = formatting.format_ls(visible, date(2026, 5, 28), all_hashes, use_color=False)
+    # Among just visible items, "a" alone would be unique — but globally we
+    # need "a0". Verify the wider prefix is shown.
+    assert "[a0]" + "0" * 38 in output
+    # And the 1-char form must NOT appear.
+    assert "[a]0" + "0" * 38 not in output

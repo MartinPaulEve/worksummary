@@ -26,6 +26,12 @@ def _strip_ansi(s: str) -> str:
     return re.sub(r"\x1b\[[0-9;]*m", "", s)
 
 
+def _first_hash(ls_output: str) -> str:
+    """Extract the full hash from the first ls line, stripping bracket decoration."""
+    token = _strip_ansi(ls_output).strip().split()[0]
+    return token.replace("[", "").replace("]", "")
+
+
 def test_add_creates_item_and_confirms(runner):
     result = _add(runner, "Did a thing", "--date", "2026-05-28")
     assert result.exit_code == 0
@@ -65,8 +71,7 @@ def test_ls_empty_date_friendly_message(runner):
 
 def test_remove_by_prefix(runner):
     _add(runner, "to remove", "--date", "2026-05-28")
-    ls_out = _strip_ansi(_ls(runner, "--date", "2026-05-28").output)
-    hash_str = ls_out.strip().split()[0]
+    hash_str = _first_hash(_ls(runner, "--date", "2026-05-28").output)
     result = runner.invoke(cli.cli, ["remove", hash_str[0]])
     assert result.exit_code == 0
     assert "Removed" in result.output
@@ -101,8 +106,7 @@ def test_remove_ambiguous_prefix_errors(runner, monkeypatch):
 
 def test_replace_swaps_item(runner):
     _add(runner, "original", "--date", "2026-05-28")
-    ls_out = _strip_ansi(_ls(runner, "--date", "2026-05-28").output)
-    hash_str = ls_out.strip().split()[0]
+    hash_str = _first_hash(_ls(runner, "--date", "2026-05-28").output)
 
     result = runner.invoke(cli.cli, ["replace", hash_str[0], "updated"])
     assert result.exit_code == 0
@@ -126,6 +130,30 @@ def test_summary_outputs_teams_friendly_text(runner):
     assert "- Did another thing" in result.output
     assert "𝐑𝐞𝐟𝐞𝐫𝐞𝐧𝐜𝐞𝐬" in result.output
     assert "1. https://example.com/1" in result.output
+
+
+def test_ls_prefix_is_globally_unique_so_remove_works(runner, monkeypatch):
+    """The prefix shown by `ls --date X` must work with `remove`, even if
+    another item on a different date shares leading hash characters."""
+    fixed_ids = iter(
+        [
+            "a" + "1" * 39,  # added to 2026-05-27
+            "a" + "2" * 39,  # added to 2026-05-28 (today's filter)
+        ]
+    )
+    monkeypatch.setattr(cli.ids, "generate_id", lambda desc, ts: next(fixed_ids))
+
+    _add(runner, "yesterday", "--date", "2026-05-27")
+    _add(runner, "today", "--date", "2026-05-28")
+
+    # `ls --date 2026-05-28` only shows the "today" item. The displayed
+    # prefix must be globally unique — so removing it must succeed.
+    ls_out = _strip_ansi(_ls(runner, "--date", "2026-05-28").output)
+    assert "[a2]" in ls_out  # not just "[a]" — global prefix needs two chars
+
+    result = runner.invoke(cli.cli, ["remove", "a2"])
+    assert result.exit_code == 0
+    assert "Removed" in result.output
 
 
 def test_summary_empty_date(runner):

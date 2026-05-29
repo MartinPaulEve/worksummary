@@ -62,8 +62,9 @@ def ls_cmd(date_str: str | None) -> None:
     work_date = _parse_date_or_exit(date_str)
     conn = _open_db()
     items = storage.list_items(conn, work_date)
+    all_hashes = storage.all_ids(conn)
     use_color = sys.stdout.isatty()
-    click.echo(formatting.format_ls(items, work_date, use_color=use_color))
+    click.echo(formatting.format_ls(items, work_date, all_hashes, use_color=use_color))
 
 
 @cli.command()

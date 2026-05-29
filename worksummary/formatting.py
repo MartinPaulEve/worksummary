@@ -61,12 +61,24 @@ def format_summary(items: list[Item], work_date: date) -> str:
     return "\n".join(sections)
 
 
-def format_ls(items: list[Item], work_date: date, use_color: bool = True) -> str:
-    """Render items as a listing with the unique-prefix portion of each id colored red."""
+def format_ls(
+    items: list[Item],
+    work_date: date,
+    all_hashes: list[str],
+    use_color: bool = True,
+) -> str:
+    """Render items as a listing.
+
+    The unique-prefix portion of each id is colored red and wrapped in
+    literal `[brackets]`. Prefix uniqueness is computed against `all_hashes`
+    (the full set of ids in the database), not just the visible items, so
+    every prefix shown here is guaranteed to be accepted by `remove` and
+    `replace` regardless of which date the user filtered by.
+    """
     if not items:
         return f"No work items recorded for {work_date.isoformat()}."
 
-    prefix_lens = shortest_unique_prefixes([i.id for i in items])
+    prefix_lens = shortest_unique_prefixes(all_hashes)
 
     lines: list[str] = []
     for item in items:
@@ -76,6 +88,6 @@ def format_ls(items: list[Item], work_date: date, use_color: bool = True) -> str
         colored_prefix = click.style(prefix, fg="red") if use_color else prefix
         date_str = item.work_date.isoformat()
         time_str = _format_time(item.created_at)
-        lines.append(f"{colored_prefix}{rest}  {date_str} {time_str}  {item.description}")
+        lines.append(f"[{colored_prefix}]{rest}  {date_str} {time_str}  {item.description}")
 
     return "\n".join(lines)
