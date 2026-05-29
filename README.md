@@ -74,16 +74,18 @@ worksummary summary --date 2026-05-27
 
 ## Shell completion
 
-`worksummary` supports tab completion for commands (`add`, `ls`, `remove`, …) and options (`--date`, …) in fish, bash, and zsh, via Click's built-in completion. You must have `worksummary` on your `$PATH` for completion to work — see [Install](#install) above to put it there.
+`worksummary` supports tab completion for commands (`add`, `ls`, `remove`, …) and options (`--date`, …) in fish, bash, and zsh. You must have `worksummary` on your `$PATH` for completion to work — see [Install](#install) above to put it there.
 
 ### fish
 
+The fish completion script Click 8.4 generates is broken (the parser indexes fields that aren't there, so nothing ever completes). This repo ships a working hand-written version at `completions/worksummary.fish` — copy it into your fish completions directory:
+
 ```fish
 mkdir -p ~/.config/fish/completions
-_WORKSUMMARY_COMPLETE=fish_source worksummary > ~/.config/fish/completions/worksummary.fish
+cp completions/worksummary.fish ~/.config/fish/completions/
 ```
 
-Open a new shell, then `worksummary a<TAB>` completes to `add`, and `worksummary add --d<TAB>` completes to `--date`.
+Open a new shell. Then `worksummary a<TAB>` completes to `add`, and `worksummary add --d<TAB>` completes to `--date`.
 
 ### bash
 
