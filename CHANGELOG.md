@@ -1,3 +1,9 @@
+## 1.3.0 (2026-06-22)
+
+### Feat
+
+- **week**: add week command summarising each day of the past week
+
 ## 1.2.0 (2026-05-29)
 
 ### Feat
