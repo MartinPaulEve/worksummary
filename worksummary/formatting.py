@@ -61,6 +61,25 @@ def format_summary(items: list[Item], work_date: date) -> str:
     return "\n".join(sections)
 
 
+def format_week(days: list[tuple[date, list[Item]]]) -> str:
+    """Render a per-day summary for a span of days.
+
+    `days` is an ordered list of (date, items) pairs. Days with no items are
+    skipped. Each remaining day is rendered with `format_summary` and the
+    blocks are joined by a blank line. If no day has items, a friendly message
+    naming the span's date range is returned.
+    """
+    blocks = [format_summary(items, day) for day, items in days if items]
+    if blocks:
+        return "\n\n".join(blocks)
+
+    if days:
+        start = days[0][0].isoformat()
+        end = days[-1][0].isoformat()
+        return f"No work items recorded for {start} to {end}."
+    return "No work items recorded."
+
+
 def format_ls(
     items: list[Item],
     work_date: date,

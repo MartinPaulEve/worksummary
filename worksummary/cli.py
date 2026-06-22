@@ -123,5 +123,20 @@ def summary(date_str: str | None) -> None:
     click.echo(formatting.format_summary(items, work_date))
 
 
+@cli.command()
+@click.option(
+    "--date",
+    "date_str",
+    default=None,
+    help="ISO date (YYYY-MM-DD) for the last day of the week; defaults to today.",
+)
+def week(date_str: str | None) -> None:
+    """Print a Teams-ready summary for each day of the past week."""
+    end_date = _parse_date_or_exit(date_str)
+    conn = _open_db()
+    days = [(day, storage.list_items(conn, day)) for day in dates.past_week(end_date)]
+    click.echo(formatting.format_week(days))
+
+
 if __name__ == "__main__":
     cli()

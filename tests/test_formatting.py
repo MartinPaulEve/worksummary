@@ -100,6 +100,62 @@ def test_format_summary_header_contains_literal_bold_unicode():
     assert "𝟐" in output  # bold digit 2
 
 
+def _dated_item(d: date, desc: str) -> Item:
+    return Item(
+        id=desc.ljust(40, "0"),
+        work_date=d,
+        created_at=f"{d.isoformat()}T09:00:00",
+        description=desc,
+    )
+
+
+def test_format_week_renders_one_summary_block_per_non_empty_day():
+    days = [
+        (date(2026, 5, 27), [_dated_item(date(2026, 5, 27), "Tuesday task")]),
+        (date(2026, 5, 28), [_dated_item(date(2026, 5, 28), "Wednesday task")]),
+    ]
+    output = formatting.format_week(days)
+    assert _bold("Wed 27 May 2026") in output
+    assert _bold("Thu 28 May 2026") in output
+    assert "- Tuesday task" in output
+    assert "- Wednesday task" in output
+    # The Tuesday block comes before the Wednesday block.
+    assert output.index("Tuesday task") < output.index("Wednesday task")
+
+
+def test_format_week_skips_days_with_no_items():
+    days = [
+        (date(2026, 5, 27), []),
+        (date(2026, 5, 28), [_dated_item(date(2026, 5, 28), "Only this day")]),
+    ]
+    output = formatting.format_week(days)
+    assert "- Only this day" in output
+    # The empty day must not appear at all, not even as a "No work items" line.
+    assert "2026-05-27" not in output
+    assert "No work items" not in output
+
+
+def test_format_week_separates_day_blocks_with_blank_line():
+    days = [
+        (date(2026, 5, 27), [_dated_item(date(2026, 5, 27), "Day one")]),
+        (date(2026, 5, 28), [_dated_item(date(2026, 5, 28), "Day two")]),
+    ]
+    output = formatting.format_week(days)
+    # Two independent summary blocks joined by a blank line.
+    blocks = output.split("\n\n" + _bold("Work"))
+    assert len(blocks) == 2
+
+
+def test_format_week_all_days_empty_reports_range():
+    days = [
+        (date(2026, 5, 22), []),
+        (date(2026, 5, 23), []),
+        (date(2026, 5, 28), []),
+    ]
+    output = formatting.format_week(days)
+    assert output == "No work items recorded for 2026-05-22 to 2026-05-28."
+
+
 def test_format_ls_no_items():
     output = formatting.format_ls([], date(2026, 5, 28), [], use_color=False)
     assert output == "No work items recorded for 2026-05-28."

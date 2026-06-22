@@ -45,6 +45,12 @@ worksummary replace 6 "Fixed bug 128 and added regression test"
 # Render a Teams-ready summary
 worksummary summary
 worksummary summary --date 2026-05-27
+
+# Render a Teams-ready summary for each day of the past week
+# (the 7 days ending today, inclusive). Days with no items are skipped.
+worksummary week
+# Use --date to pick a different last day of the 7-day window
+worksummary week --date 2026-05-27
 ```
 
 ## Output
@@ -64,6 +70,24 @@ worksummary summary --date 2026-05-27
 1. https://github.com/example/repo/issues/128
 2. https://github.com/example/repo/pull/42
 3. https://github.com/example/repo/issues/88
+```
+
+### `week`
+
+`week` prints a `summary` block for each of the 7 days ending on the chosen day (today by default, or the `--date` you pass). Days with no recorded items are omitted, and the blocks are separated by a blank line so the whole thing pastes into Teams as one message. Each day numbers its own references independently.
+
+```
+𝐖𝐨𝐫𝐤 — 𝐌𝐨𝐧 𝟐𝟓 𝐌𝐚𝐲 𝟐𝟎𝟐𝟔
+
+- Built the week command [¹]
+- Reviewed PR for new menu items
+
+𝐑𝐞𝐟𝐞𝐫𝐞𝐧𝐜𝐞𝐬
+1. https://github.com/example/repo/pull/9
+
+𝐖𝐨𝐫𝐤 — 𝐖𝐞𝐝 𝟐𝟕 𝐌𝐚𝐲 𝟐𝟎𝟐𝟔
+
+- Fixed bug 128
 ```
 
 ### `ls`

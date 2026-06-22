@@ -214,3 +214,48 @@ def test_summary_empty_date(runner):
     result = runner.invoke(cli.cli, ["summary", "--date", "2026-05-28"])
     assert result.exit_code == 0
     assert "No work items recorded for 2026-05-28" in result.output
+
+
+def test_week_dumps_a_summary_for_each_day_in_range(runner):
+    _add(runner, "Monday work", "--date", "2026-05-25")
+    _add(runner, "Wednesday work", "--date", "2026-05-27")
+    # --date is the last day of the 7-day window (2026-05-22 … 2026-05-28).
+    result = runner.invoke(cli.cli, ["week", "--date", "2026-05-28"])
+    assert result.exit_code == 0
+    output = _strip_ansi(result.output)
+    assert "- Monday work" in output
+    assert "- Wednesday work" in output
+    # Days are ordered chronologically: Monday's block precedes Wednesday's.
+    assert output.index("Monday work") < output.index("Wednesday work")
+
+
+def test_week_skips_days_with_no_items(runner):
+    _add(runner, "lonely item", "--date", "2026-05-28")
+    result = runner.invoke(cli.cli, ["week", "--date", "2026-05-28"])
+    assert result.exit_code == 0
+    output = _strip_ansi(result.output)
+    assert "- lonely item" in output
+    assert "No work items" not in output
+
+
+def test_week_excludes_items_outside_the_window(runner):
+    # 8 days before the end date — just outside the 7-day window.
+    _add(runner, "too old", "--date", "2026-05-21")
+    _add(runner, "in window", "--date", "2026-05-22")
+    result = runner.invoke(cli.cli, ["week", "--date", "2026-05-28"])
+    assert result.exit_code == 0
+    output = _strip_ansi(result.output)
+    assert "in window" in output
+    assert "too old" not in output
+
+
+def test_week_all_empty_reports_range(runner):
+    result = runner.invoke(cli.cli, ["week", "--date", "2026-05-28"])
+    assert result.exit_code == 0
+    assert "No work items recorded for 2026-05-22 to 2026-05-28." in result.output
+
+
+def test_week_rejects_invalid_date(runner):
+    result = runner.invoke(cli.cli, ["week", "--date", "last-week"])
+    assert result.exit_code != 0
+    assert "YYYY-MM-DD" in result.output

@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 
 def parse_iso_date(text: str) -> date:
@@ -12,6 +12,14 @@ def parse_iso_date(text: str) -> date:
 def today() -> date:
     """Return today's local date."""
     return date.today()
+
+
+def past_week(end: date) -> list[date]:
+    """Return the 7 dates ending at `end` (inclusive), in chronological order.
+
+    i.e. `end - 6` … `end`.
+    """
+    return [end - timedelta(days=offset) for offset in range(6, -1, -1)]
 
 
 def format_iso(d: date) -> str:
