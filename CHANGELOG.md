@@ -1,3 +1,14 @@
+## 1.4.0 (2026-07-18)
+
+### Feat
+
+- declare MIT license and homepage in project metadata
+- **nix**: add flake packaging worksummary as an installable app
+
+### Refactor
+
+- **nix**: source homepage and license from pyproject.toml
+
 ## 1.3.0 (2026-06-22)
 
 ### Feat
