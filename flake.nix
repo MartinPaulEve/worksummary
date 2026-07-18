@@ -47,7 +47,10 @@
 
             meta = {
               inherit (pyproject) description;
-              homepage = "https://github.com/MartinPaulEve/worksummary";
+              homepage = pyproject.urls.Homepage;
+              # pyproject [project.license] is an SPDX string ("MIT"); map it to
+              # the matching nixpkgs license attrset.
+              license = pkgs.lib.getLicenseFromSpdxId pyproject.license;
               mainProgram = "worksummary";
               # pyproject [project.authors] entries are { name, email } — exactly
               # the shape nixpkgs expects for a maintainer, so reuse them directly.
