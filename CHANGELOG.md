@@ -1,3 +1,9 @@
+## 1.4.1 (2026-07-18)
+
+### Fix
+
+- **completion**: parse both Click completion wire formats
+
 ## 1.4.0 (2026-07-18)
 
 ### Feat
