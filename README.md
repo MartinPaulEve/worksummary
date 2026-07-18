@@ -4,6 +4,11 @@ A command-line tool for logging daily work items and producing a Microsoft Teams
 
 ## Install
 
+`worksummary` can be installed with [uv](https://docs.astral.sh/uv/), or on NixOS
+(and any system with Nix flakes) via the flake this repo ships.
+
+### Using uv
+
 For development (from a clone of this repo):
 
 ```bash
@@ -17,6 +22,52 @@ To install `worksummary` as a system-wide command (so you can run it without `uv
 uv tool install .                                          # from a local clone
 uv tool install git+https://github.com/MartinPaulEve/worksummary.git   # from GitHub
 ```
+
+### On NixOS
+
+This repo ships a `flake.nix` exposing `worksummary` as a package (and a `nix run`
+app), so you don't need uv on NixOS.
+
+Run it ad hoc, without installing anything:
+
+```bash
+nix run github:MartinPaulEve/worksummary -- --help
+```
+
+Install it imperatively into your profile:
+
+```bash
+nix profile install github:MartinPaulEve/worksummary
+```
+
+Or install it declaratively in a flake-based system config. Add the input to your
+`flake.nix`:
+
+```nix
+inputs.worksummary = {
+  url = "github:MartinPaulEve/worksummary";
+  inputs.nixpkgs.follows = "nixpkgs";  # build against your own nixpkgs
+};
+```
+
+Then add the package to `environment.systemPackages` (or Home Manager's
+`home.packages`) from a module that receives `inputs`:
+
+```nix
+environment.systemPackages = [
+  inputs.worksummary.packages.${pkgs.stdenv.hostPlatform.system}.default
+];
+```
+
+Pull the latest release later with:
+
+```bash
+nix flake update worksummary   # then rebuild
+```
+
+The package bundles the fish completion under `share/fish/vendor_completions.d/`, so
+fish loads it automatically once `worksummary` is installed — no manual step needed.
+(For bash/zsh, see [Shell completion](#shell-completion).)
 
 The first `worksummary` invocation creates an SQLite database under `$XDG_DATA_HOME/worksummary/work.db` (or `~/.local/share/worksummary/work.db` if `XDG_DATA_HOME` is unset).
 
@@ -150,4 +201,3 @@ uv run ruff check
 uv run ruff format
 ```
 
-See `docs/superpowers/specs/` for the design document and `docs/superpowers/plans/` for the implementation plan.
